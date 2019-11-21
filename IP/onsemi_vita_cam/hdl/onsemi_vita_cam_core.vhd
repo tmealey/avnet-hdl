@@ -879,6 +879,8 @@ architecture rtl of onsemi_vita_cam_core is
   signal demux_dout           : std_logic_vector(15 downto 0);
   signal demux_empty          : std_logic;
   signal demux_full           : std_logic;
+  
+  signal reset_sync           : std_logic;
 
   --
   -- I/O registers & buffers
@@ -1473,6 +1475,23 @@ end generate WITHOUT_BLC;
    CRC_VIDEO_SYNC(0)         <= CRC_PAR_DATA_IMGVALID_OUT; -- de
 --end generate VIDEO_WITHOUT_SYNCGEN;
 
+
+  -- 
+  -- Synchronize reset to clk for demux_fifo
+  --
+  xpm_cdc_sync_rst_inst: xpm_cdc_sync_rst
+  generic map (
+    DEST_SYNC_FF => 2,
+    INIT => 0,
+    SIM_ASSERT_CHK => 0
+  )
+  port map (
+    src_rst => reset,
+    dest_clk => clk,
+    dest_rst => reset_sync
+  );
+
+
 DEMUX_GEN : if (C_VIDEO_DIRECT_OUTPUT = 0) generate
 
   --
@@ -1486,7 +1505,7 @@ DEMUX_GEN : if (C_VIDEO_DIRECT_OUTPUT = 0) generate
   )
   port map
   (
-      rst                     => framestart,
+      rst                     => reset_sync,
 
       wr_clk                  => clk,
       wr_en                   => BLC_VIDEO_SYNC(0), -- delayed version of CRC_PAR_DATA_IMGVALID_OUT
